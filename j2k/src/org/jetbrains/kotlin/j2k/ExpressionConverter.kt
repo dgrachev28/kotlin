@@ -20,6 +20,7 @@ package org.jetbrains.kotlin.j2k
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.*
+import com.intellij.psi.impl.source.JavaDummyHolder
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.MethodSignature
@@ -102,6 +103,10 @@ class DefaultExpressionConverter : JavaElementVisitor(), ExpressionConverter {
         }
 
         val operator = Operator(tokenType).assignPrototype(expression.operationSign)
+        if (expression.parent !is PsiExpressionStatement && expression.parent !is JavaDummyHolder && expression.parent !is PsiExpressionList) {
+            result = lhs
+            return
+        }
         result = if (secondOp) {
             AssignmentExpression(lhs, BinaryExpression(lhs, rhs, operator).assignNoPrototype(), Operator.EQ)
         }

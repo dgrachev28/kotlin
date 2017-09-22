@@ -18,6 +18,7 @@ package org.jetbrains.kotlin.j2k
 
 import com.intellij.psi.*
 import com.intellij.psi.CommonClassNames.*
+import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.j2k.ast.*
 
 class CodeConverter(
@@ -47,7 +48,17 @@ class CodeConverter(
 
         val lBrace = LBrace().assignPrototype(block.lBrace)
         val rBrace = RBrace().assignPrototype(block.rBrace)
-        return Block(block.statements.filter(statementFilter).map { convertStatement(it) }, lBrace, rBrace, notEmpty).assignPrototype(block)
+
+        val statements = mutableListOf<Statement>()
+        block.statements.filter(statementFilter).forEach { statement ->
+            val factory = JavaPsiFacade.getInstance(block.project).elementFactory
+            statements.addAll(PsiTreeUtil.findChildrenOfType(statement, PsiAssignmentExpression::class.java)
+                                      .filter { it.parent !is PsiExpressionStatement }
+                                      .filter { PsiTreeUtil.findFirstParent(it, { it is PsiStatement }) == statement }
+                                      .map { convertExpression(it.copy() as PsiExpression) }.toTypedArray())
+            statements.add(convertStatement(statement))
+        }
+        return Block(statements, lBrace, rBrace, notEmpty).assignPrototype(block)
     }
 
     fun convertStatement(statement: PsiStatement?): Statement {

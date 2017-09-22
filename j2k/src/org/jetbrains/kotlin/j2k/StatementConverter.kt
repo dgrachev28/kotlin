@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.j2k
 
 import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.j2k.ast.*
 import java.util.*
 
@@ -255,9 +256,19 @@ class DefaultStatementConverter : JavaElementVisitor(), StatementConverter {
 }
 
 fun CodeConverter.convertStatementOrBlock(statement: PsiStatement?): Statement {
+    if (statement == null) return Statement.Empty
     return if (statement is PsiBlockStatement)
         convertBlock(statement.codeBlock)
-    else
-        convertStatement(statement)
+    else {
+        val factory = JavaPsiFacade.getInstance(statement.project).elementFactory
+        val statements = PsiTreeUtil.findChildrenOfType(statement, PsiAssignmentExpression::class.java)
+                .filter { it.parent !is PsiExpressionStatement }
+                .filter { PsiTreeUtil.findFirstParent(it, { it is PsiStatement }) == statement }
+                .map { convertExpression(it.copy() as PsiExpression) }.toTypedArray()
+        if (statements.isNotEmpty())
+            Block(listOf(*statements, convertStatement(statement)), LBrace().assignNoPrototype(), RBrace().assignNoPrototype(), true).assignNoPrototype()
+        else
+            convertStatement(statement)
+    }
 }
 

@@ -35,18 +35,8 @@ open class AssignmentExpression(val left: Expression, val right: Expression, val
 
     fun isMultiAssignment() = right is AssignmentExpression
 
-    fun appendAssignment(builder: CodeBuilder, left: Expression, right: Expression) {
-        builder.appendOperand(this, left).append(" ").append(op).append(" ").appendOperand(this, right)
-    }
-
     override fun generateCode(builder: CodeBuilder) {
-        if (right !is AssignmentExpression)
-            appendAssignment(builder, left, right)
-        else {
-            right.generateCode(builder)
-            builder.append("\n")
-            appendAssignment(builder, left, right.left)
-        }
+        builder.appendOperand(this, left).append(" ").append(op).append(" ").appendOperand(this, right)
     }
 }
 
