@@ -20,6 +20,7 @@ package org.jetbrains.kotlin.j2k
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.*
+import com.intellij.psi.impl.source.DummyHolder
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.MethodSignature
@@ -92,6 +93,11 @@ class DefaultExpressionConverter : JavaElementVisitor(), ExpressionConverter {
         val tokenType = expression.operationSign.tokenType
 
         val lhs = codeConverter.convertExpression(expression.lExpression)
+        if (!expression.isStatement()) {
+            result = lhs
+            return
+        }
+
         val rhs = codeConverter.convertExpression(expression.rExpression!!, expression.lExpression.type)
 
         val secondOp = when (tokenType) {
@@ -949,4 +955,9 @@ class DefaultExpressionConverter : JavaElementVisitor(), ExpressionConverter {
     override fun visitExpression(expression: PsiExpression) {
         result = DummyStringExpression(expression.text)
     }
+}
+
+fun PsiAssignmentExpression.isStatement() : Boolean {
+    return (PsiTreeUtil.getParentOfType(this, PsiStatement::class.java) is PsiLoopStatement)
+           || parent.let { it is PsiExpressionStatement || it is DummyHolder || it.parent is PsiExpressionListStatement }
 }

@@ -235,6 +235,7 @@ class DefaultStatementConverter : JavaElementVisitor(), StatementConverter {
             codeConverter.convertExpression(condition, condition.type)
         else
             codeConverter.convertExpression(condition)
+
         result = WhileStatement(expression, codeConverter.convertStatementOrBlock(statement.body), statement.isInSingleLine())
     }
 
@@ -257,7 +258,12 @@ class DefaultStatementConverter : JavaElementVisitor(), StatementConverter {
 fun CodeConverter.convertStatementOrBlock(statement: PsiStatement?): Statement {
     return if (statement is PsiBlockStatement)
         convertBlock(statement.codeBlock)
-    else
-        convertStatement(statement)
+    else {
+        val assignments = findAssignmentsAsExpressions(statement)
+        if (assignments.isNotEmpty())
+            Block(listOf(*assignments, convertStatement(statement)), LBrace().assignNoPrototype(), RBrace().assignNoPrototype(), true).assignNoPrototype()
+        else
+            convertStatement(statement)
+    }
 }
 
